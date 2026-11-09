@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: existing-labels-ask-first
+expected_outcome: |
+  The sidecars already carry color labels from an earlier cull, including Red and Purple,
+  which this cull doesn't use. The run does the grouping and picking but stops before
+  writing, tells the user about the existing labels and asks whether to replace them. No
+  sidecar is changed.
+context:
+  scaffold_script: place-files.sh

@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: baptism-fresh-cull
+expected_outcome: |
+  All 47 raws get a sidecar with a Green or Yellow label and nothing else is added. Near-
+  identical burst frames share at most one Green, and the number of Greens matches the
+  number of distinct moments rather than every frame or one for the whole event. The reply
+  gives totals and says to import the folder.
+context:
+  scaffold_script: place-files.sh

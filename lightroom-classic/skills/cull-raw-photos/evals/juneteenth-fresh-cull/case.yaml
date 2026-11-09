@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: juneteenth-fresh-cull
+expected_outcome: |
+  All 74 raws get a sidecar with a Green or Yellow label and nothing else is added to the
+  folder. Each moment (a pose or framing of the swing, mom pushing, the frames after the
+  long pause) gets exactly one Green, so near-identical burst frames never share two
+  Greens and no scene goes without one. The reply gives totals and says to import the
+  folder so Lightroom reads the labels.
+context:
+  scaffold_script: place-files.sh
