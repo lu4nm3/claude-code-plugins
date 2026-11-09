@@ -8,6 +8,8 @@
 For every CR3 (in capture order) this:
   * extracts the embedded ~1620px preview JPEG and rotates it upright
   * reads capture time, orientation and any existing sidecar label/rating
+  * notes who wrote existing sidecars, to guess whether the shoot is already
+    in a Lightroom catalog (manifest "lightroom", printed as "catalog:")
   * computes a rough focus score (see `sharpness` below)
   * builds numbered contact sheets so many frames can be viewed at once
 
@@ -140,8 +142,51 @@ def process(path: str, src: str, preview_dir: str) -> dict:
         rec["error"] = f"{type(e).__name__}: {e}"
         rec["_dt"] = datetime.fromtimestamp(os.path.getmtime(path))
     sc = xmp_sidecar.read_sidecar(path)
-    rec["sidecar"] = {"exists": sc["exists"], "label": sc["label"], "rating": sc["rating"]}
+    rec["sidecar"] = {k: sc[k] for k in ("exists", "label", "rating", "writer", "has_develop")}
     return rec
+
+
+def catalog_status(records: list) -> dict:
+    """Guess from the existing sidecars whether the shoot is in a Lightroom catalog.
+
+    Lightroom Classic writes a sidecar for a CR3 only after the photo is in a
+    catalog (Save Metadata to File, or auto-write). So Lightroom-written
+    sidecars mean the shoot is almost certainly imported. Sidecars from other
+    tools, or with develop settings from an unnamed tool, mean it may be.
+    Sidecars only from an earlier run of this skill, or none at all, point to
+    "not imported", but can't rule it out: a catalog that never wrote
+    metadata out leaves no sidecars.
+
+    verdict is 'imported' | 'maybe-imported' | 'probably-not-imported'.
+    """
+    n = len(records)
+    with_sc = [r for r in records if r["sidecar"]["exists"]]
+    writers = {}
+    for r in with_sc:
+        w = r["sidecar"]["writer"]
+        writers[w] = writers.get(w, 0) + 1
+    develop = sum(1 for r in with_sc if r["sidecar"]["has_develop"])
+    if writers.get("lightroom"):
+        verdict = "imported"
+        reason = f"{writers['lightroom']} of {n} frames have sidecars written by Lightroom"
+    elif writers.get("other") or writers.get("unknown") or develop:
+        verdict = "maybe-imported"
+        k = writers.get("other", 0) + writers.get("unknown", 0)
+        reason = f"{k} of {n} frames have sidecars from another tool" + (
+            f", {develop} with develop settings" if develop else "")
+    elif with_sc:
+        verdict = "probably-not-imported"
+        reason = f"the only sidecars ({len(with_sc)} of {n}) are from an earlier run of this skill"
+    else:
+        verdict = "probably-not-imported"
+        reason = "no frame has a sidecar"
+    return {
+        "verdict": verdict,
+        "reason": reason,
+        "sidecars": len(with_sc),
+        "writers": writers,
+        "with_develop_settings": develop,
+    }
 
 
 def fmt_gap(s: float) -> str:
@@ -249,6 +294,7 @@ def main() -> int:
         "count": len(records),
         "errors": [r["file"] for r in records if "error" in r],
         "already_labeled": len(labeled),
+        "lightroom": catalog_status(records),
         "sheets": sheets,
         "images": records,
     }
@@ -260,6 +306,8 @@ def main() -> int:
     print(f"images:   {len(records)} CR3 files, {len(sheets)} contact sheets")
     if manifest["errors"]:
         print(f"ERRORS:   {len(manifest['errors'])} files could not be read: {manifest['errors'][:10]}")
+    lr = manifest["lightroom"]
+    print(f"catalog:  {lr['verdict']} ({lr['reason']})")
     if labeled:
         counts = {}
         for r in labeled:

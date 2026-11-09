@@ -28,6 +28,9 @@ from xml.sax.saxutils import escape, quoteattr
 XMP_NS = "http://ns.adobe.com/xap/1.0/"
 PS_NS = "http://ns.adobe.com/photoshop/1.0/"
 RDF_NS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+X_NS = "adobe:ns:meta/"
+CRS_NS = "http://ns.adobe.com/camera-raw-settings/1.0/"
+OWN_XMPTK = "cull-raw-photos"  # x:xmptk of sidecars this skill creates
 
 
 def sidecar_path(raw_path: str) -> str:
@@ -71,11 +74,44 @@ def read_property(text: str, name: str, ns: str = XMP_NS) -> Optional[str]:
     return None
 
 
+def sidecar_origin(text: str) -> dict:
+    """Who wrote this sidecar, and does it carry develop settings?
+
+    Returns {'writer', 'creator_tool', 'has_develop'}. writer is one of
+    'lightroom' (xmp:CreatorTool names Lightroom), 'cull-raw-photos' (a sidecar
+    this skill created), 'other' (any other tool, e.g. Aftershoot or Bridge)
+    or 'unknown' (nothing identifies the tool). has_develop is True when the
+    sidecar holds Camera Raw / Lightroom develop settings (crs:*).
+    """
+    creator = read_property(text, "CreatorTool")
+    xmptk = None
+    try:
+        root = ET.fromstring(text)
+        xmptk = root.attrib.get(f"{{{X_NS}}}xmptk")
+    except ET.ParseError:
+        pass
+    has_develop = bool(_xmp_prefixes(text, CRS_NS))
+    if creator and "lightroom" in creator.lower():
+        writer = "lightroom"
+    elif xmptk == OWN_XMPTK and not creator and not has_develop:
+        writer = "cull-raw-photos"
+    elif creator:
+        writer = "other"
+    else:
+        writer = "unknown"
+    return {"writer": writer, "creator_tool": creator, "has_develop": has_develop}
+
+
 def read_sidecar(raw_path: str) -> dict:
-    """Return {'exists', 'path', 'label', 'rating'} for a raw file's sidecar."""
+    """Return {'exists', 'path', 'label', 'rating', ...} for a raw file's sidecar.
+
+    An existing sidecar also reports 'label_color' and, from sidecar_origin(),
+    'writer', 'creator_tool' and 'has_develop'.
+    """
     path = sidecar_path(raw_path)
     if not os.path.exists(path):
-        return {"exists": False, "path": path, "label": None, "rating": None}
+        return {"exists": False, "path": path, "label": None, "rating": None,
+                "writer": None, "creator_tool": None, "has_develop": False}
     with open(path, "r", encoding="utf-8", errors="replace") as f:
         text = f.read()
     label = read_property(text, "Label")
@@ -88,6 +124,7 @@ def read_sidecar(raw_path: str) -> dict:
         "label": label,
         "label_color": color,
         "rating": read_property(text, "Rating"),
+        **sidecar_origin(text),
     }
 
 

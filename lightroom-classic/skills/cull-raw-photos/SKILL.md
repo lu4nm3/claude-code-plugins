@@ -26,19 +26,27 @@ All working files (previews, sheets, manifest, groups, backups) go in a **work d
 
 ## Workflow
 
-### 1. Check where the photos are in Lightroom
-
-Lightroom reads sidecars only when it imports photos, or when you explicitly tell it to re-read them. If the photos are **already in a Lightroom catalog** and have edits, re-reading the sidecars replaces the catalog's develop settings with whatever the sidecar contains. So before writing anything, the sidecars need to hold the current edits. If the user hasn't said whether the photos are imported, ask once. If they are imported, have the user select the photos in Lightroom and run **Metadata ▸ Save Metadata to File** (⌘S) *before* step 5. This doesn't block steps 2–4, so carry on with those. `references/lightroom.md` has the details for this and for the hand-off.
-
-### 2. Prepare
+### 1. Prepare
 
 ```bash
 uv run <skill-dir>/scripts/prepare.py "/path/to/shoot" [--recursive]
 ```
 
-The script prints the work dir, the list of contact sheets, any files it couldn't read, and how many frames **already have a color label**. If many frames are already labeled, the folder may have been culled before, by hand or by another tool. Mention this to the user now rather than surprising them at the end.
+This only reads the folder, so run it first. It prints the work dir, the list of contact sheets, any files it couldn't read, a `catalog:` line (step 2), and how many frames **already have a color label**. If many frames are already labeled, the folder may have been culled before, by hand or by another tool. Mention this to the user now rather than surprising them at the end.
 
-`manifest.json` lists every frame in capture order: `index` (the `#` on the sheets), `file`, `time`, `gap_s` (seconds since the previous frame), `sharpness`, and existing sidecar label/rating.
+`manifest.json` lists every frame in capture order: `index` (the `#` on the sheets), `file`, `time`, `gap_s` (seconds since the previous frame), `sharpness`, and the existing sidecar's label, rating, `writer` and `has_develop`. Its `lightroom` entry holds the catalog verdict.
+
+### 2. Check whether the photos are in a Lightroom catalog
+
+Lightroom reads sidecars only when it imports photos, or when you explicitly tell it to re-read them. If the photos are **already in a Lightroom catalog** and have edits, re-reading the sidecars replaces the catalog's develop settings with whatever the sidecar contains. So before writing anything, the sidecars need to hold the current edits.
+
+You don't need to ask the user where the photos are. `prepare.py` works it out from the sidecars already in the folder, because Lightroom Classic writes a CR3's sidecar only after the photo is in a catalog. Its `catalog:` line gives one of three verdicts:
+
+- **`imported`**: some sidecars were written by Lightroom (`xmp:CreatorTool` names it). Treat the shoot as being in a catalog. Tell the user what you found and have them select the photos in Lightroom and run **Metadata ▸ Save Metadata to File** (⌘S) *before* step 5. This doesn't block steps 3–4, so carry on with those.
+- **`maybe-imported`**: sidecars exist, but from another tool (Aftershoot, Bridge) or a tool that can't be identified. The shoot may or may not be in a catalog. Ask the user once.
+- **`probably-not-imported`**: no sidecars, or only ones from an earlier run of this skill. Treat the shoot as not imported and don't ask. A catalog that never wrote metadata out leaves no sidecars either, so mention in the hand-back that if the photos *are* in a catalog, they should say so before re-reading metadata.
+
+What the user tells you overrides the verdict. If they say the photos are imported, or not, go with that. `references/lightroom.md` has the details for the save step and for the hand-off.
 
 ### 3. Group frames into moments
 
@@ -136,5 +144,5 @@ Tell the user:
 
 - the totals: N frames → G moments → G Green, N − G Yellow
 - anything worth a second look: groups where the pick was a close call, groups where every frame was weak, misfires you marked Yellow (by file name, so they can be deleted), frames that couldn't be read, labels you replaced
-- the exact Lightroom steps for their situation (not yet imported vs. already in the catalog), taken from `references/lightroom.md`
+- the exact Lightroom steps for their situation (not yet imported vs. already in the catalog), taken from `references/lightroom.md`, and which verdict that came from (what the user said, or the sidecars `prepare.py` found)
 - the undo command, with the work dir filled in
