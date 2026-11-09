@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: imported-shoot-keeps-edits
+expected_outcome: |
+  The user asked for the earlier labels to be replaced, so every sidecar gets Green or
+  Yellow without stopping to ask. Only the label fields (xmp:Label and
+  photoshop:LabelColor, kept matching) and the metadata date change; develop settings,
+  crops and the other tool's fields stay byte-for-byte the same. The .acr files and raws
+  are untouched. The reply tells the user to use Read Metadata from Files, not a re-
+  import.
+context:
+  scaffold_script: place-files.sh

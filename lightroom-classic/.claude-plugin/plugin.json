@@ -1,0 +1,7 @@
+{
+  "name": "lightroom-classic",
+  "version": "0.1.0",
+  "description": "Skills for working with Adobe Lightroom Classic: cull Canon CR3 shoots into Green/Yellow color labels via XMP sidecars.",
+  "author": { "name": "Luis Medina" },
+  "keywords": ["lightroom", "photography", "culling", "cr3", "xmp"]
+}

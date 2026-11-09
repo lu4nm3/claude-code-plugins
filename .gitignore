@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+
+# eval runs (cloned raws, run outputs)
+cull-raw-photos-workspace/
+lightroom-classic/skills/cull-raw-photos/evals/results/

@@ -1,0 +1,11 @@
+{
+  "name": "luis-plugins",
+  "owner": { "name": "Luis Medina" },
+  "plugins": [
+    {
+      "name": "lightroom-classic",
+      "source": "./lightroom-classic",
+      "description": "Cull Canon CR3 shoots for Lightroom Classic: one Green pick per moment, the rest Yellow, via XMP sidecars."
+    }
+  ]
+}
