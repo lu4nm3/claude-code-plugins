@@ -53,7 +53,7 @@ Ask in plain language. Mention whether the photos are already in your Lightroom 
 
 > These are already imported and edited in Lightroom. Re-cull them and replace the old labels.
 
-If you don't say whether the photos are imported, Claude asks once. If the folder already has color labels (from an earlier cull, by hand or by another tool such as Aftershoot), Claude tells you and asks before replacing them.
+If you don't say, Claude works it out from the sidecars already in the folder. Lightroom Classic writes a CR3's `.xmp` sidecar only once the photo is in a catalog, so sidecars written by Lightroom mean the shoot is imported, and Claude tells you to save metadata first. No sidecars means it's probably not imported. Claude asks only when the sidecars came from another tool, such as Aftershoot, and the answer isn't clear. If the folder already has color labels (from an earlier cull, by hand or by another tool such as Aftershoot), Claude tells you and asks before replacing them.
 
 ### Getting the labels into Lightroom Classic
 
@@ -95,7 +95,7 @@ All in [`skills/cull-raw-photos/scripts/`](skills/cull-raw-photos/scripts):
 
 | script | what it does | needs |
 |---|---|---|
-| `prepare.py <folder> [--recursive] [--work-dir DIR]` | extracts previews, reads capture times and existing labels, builds contact sheets and `manifest.json` | Pillow (`uv run`) |
+| `prepare.py <folder> [--recursive] [--work-dir DIR]` | extracts previews, reads capture times and existing labels, detects whether existing sidecars point to a Lightroom catalog, builds contact sheets and `manifest.json` | Pillow (`uv run`) |
 | `compare.py --work-dir DIR <frames…> [--zoom x,y,w,h]` | side-by-side image of up to 9 frames with focus scores, optionally a zoomed crop from the full-res JPEG | Pillow (`uv run`) |
 | `apply_labels.py --work-dir DIR [--write \| --undo]` | validates `groups.json`, dry-runs by default, writes sidecars with backups, undoes the last write | stdlib |
 | `cr3.py info\|preview\|full <file.CR3> [out.jpg]` | minimal CR3 reader, also handy for debugging one file | stdlib |
